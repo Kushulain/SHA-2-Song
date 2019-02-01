@@ -373,12 +373,67 @@ public class Drawer : MonoBehaviour {
 		Debug.Log("size " + maxX + "," + maxY);
 	}
 
+
+	public void ProcessDrawStep(List<Word> words)
+	{
+		int depth = 0;
+
+		lastDrawnBits.Clear();
+		depthStack.Clear();
+		recursiveCall = 0;
+
+		for (int i=0; i<words.Count; i++)
+		{
+			Word w = words[i];
+			for (int k=w.bits.Count-1; k>=0; k--)
+			{
+				DrawBitStepRecursive(w[k]);
+			}
+		}
+		Debug.Log("done draw with recursive : " + recursiveCall);
+
+		int maxX = 0;
+		int maxY = 0;
+
+		foreach (KeyValuePair<int,int> kv in depthStack)
+		{
+			maxX = Mathf.Max(maxX,kv.Key);
+			maxY = Mathf.Max(maxY,kv.Value);
+		}
+		Debug.Log("size " + maxX + "," + maxY);
+	}
+
 	void DrawBitChild(Bit bit)
 	{
 		if (bit.A != null)
 			DrawBit(bit.A);
 		if (bit.B != null)
 			DrawBit(bit.B);
+	}
+
+	DrawnBit DrawBitStepRecursive(Bit bit)
+	{
+		recursiveCall++;
+
+		if (lastDrawnBits.ContainsKey(bit))
+			return lastDrawnBits[bit];
+
+		if (bit.A != null)
+			DrawBitStepRecursive(bit.A);
+		if (bit.B != null)
+			DrawBitStepRecursive(bit.B);
+
+		int positionX = (int)bit.stepFromMessage;
+
+		if (!depthStack.ContainsKey(positionX))
+			depthStack.Add(positionX,0);
+		else
+			depthStack[positionX]++;
+
+		DrawnBit drawnBit = new DrawnBit(bit,positionX,depthStack[positionX]);
+		lastDrawnBits.Add(bit,drawnBit);
+
+		return drawnBit;
 	}
 
 	DrawnBit DrawBit(Bit bit)

@@ -21,7 +21,7 @@ namespace SHATest
 
 		long id = 0;
 		public long booleanInstruction = 0;
-		public long stepFromMessage = 0;
+		public long stepFromMessage = -1;
 		public Bit A;
 		public Bit B;
 		public BitValue value = BitValue.UNDEFINED;
@@ -33,32 +33,60 @@ namespace SHATest
 			id = BitCount++;
 			if (A != null)
 			{
-				stepFromMessage  = A.stepFromMessage + 1;
 				A.AddParent(this);
 				booleanInstruction += A.booleanInstruction;
 
 			}
 			if (B != null)
 			{
-				//MAX
-				stepFromMessage  = (A.stepFromMessage > B.stepFromMessage ? A.stepFromMessage : B.stepFromMessage) + 1;
 				B.AddParent(this);
 				booleanInstruction += B.booleanInstruction;
 			}
 
-			if (stepFromMessage > maxStep)
-				maxStep = stepFromMessage;
-			
+			ProcessOrGetStep();
 			booleanInstruction++;
 		}
+
+		void ProcessOrGetStep()
+		{
+			long step = -1;
+			if (A != null)
+			{
+				step  = A.stepFromMessage;
+			}
+			if (B != null)
+			{
+				//MAX
+				step  = (A.stepFromMessage > B.stepFromMessage ? A.stepFromMessage : B.stepFromMessage);
+			}
+
+			if (step != -1)
+				SetStep(++step);
+		}
+
+		public void SetStep(long step)
+		{
+			stepFromMessage = step;
+
+			if (stepFromMessage > maxStep)
+				maxStep = stepFromMessage;
+
+			if (A != null && A.stepFromMessage == -1)
+				A.SetStep(step-1);
+			if (B != null && B.stepFromMessage == -1)
+				B.SetStep(step-1);
+		}
+
 
 		public Bit()
 		{
 			Initialize();
 		}
 
+		//is original msg
 		public Bit(int aValue)
 		{
+			stepFromMessage = 0; 
 			value = (BitValue)aValue;
 			Initialize();
 		}
@@ -554,74 +582,74 @@ namespace SHATest
 			}
 
 
-//			Word h0 = Word.FromInt(0x6a09e667);
-//			Word h1 = Word.FromInt(0xbb67ae85);
-//			Word h2 = Word.FromInt(0x3c6ef372);
-//			Word h3 = Word.FromInt(0xa54ff53a);
-//			Word h4 = Word.FromInt(0x510e527f);
-//			Word h5 = Word.FromInt(0x9b05688c);
-//			Word h6 = Word.FromInt(0x1f83d9ab);
-//			Word h7 = Word.FromInt(0x5be0cd19);
-//
-//			Word a = Word.FromInt(0x6a09e667);
-//			Word b = Word.FromInt(0xbb67ae85);
-//			Word c = Word.FromInt(0x3c6ef372);
-//			Word d = Word.FromInt(0xa54ff53a);
-//			Word e = Word.FromInt(0x510e527f);
-//			Word f = Word.FromInt(0x9b05688c);
-//			Word g = Word.FromInt(0x1f83d9ab);
-//			Word h = Word.FromInt(0x5be0cd19);
-//
-//
-//			Word[] k = new Word[64]  {
-//				Word.FromInt(0x428A2F98), Word.FromInt(0x71374491), Word.FromInt(0xB5C0FBCF), Word.FromInt(0xE9B5DBA5), Word.FromInt(0x3956C25B), Word.FromInt(0x59F111F1), Word.FromInt(0x923F82A4), Word.FromInt(0xAB1C5ED5),
-//				Word.FromInt(0xD807AA98), Word.FromInt(0x12835B01), Word.FromInt(0x243185BE), Word.FromInt(0x550C7DC3), Word.FromInt(0x72BE5D74), Word.FromInt(0x80DEB1FE), Word.FromInt(0x9BDC06A7), Word.FromInt(0xC19BF174),
-//				Word.FromInt(0xE49B69C1), Word.FromInt(0xEFBE4786), Word.FromInt(0x0FC19DC6), Word.FromInt(0x240CA1CC), Word.FromInt(0x2DE92C6F), Word.FromInt(0x4A7484AA), Word.FromInt(0x5CB0A9DC), Word.FromInt(0x76F988DA),
-//				Word.FromInt(0x983E5152), Word.FromInt(0xA831C66D), Word.FromInt(0xB00327C8), Word.FromInt(0xBF597FC7), Word.FromInt(0xC6E00BF3), Word.FromInt(0xD5A79147), Word.FromInt(0x06CA6351), Word.FromInt(0x14292967),
-//				Word.FromInt(0x27B70A85), Word.FromInt(0x2E1B2138), Word.FromInt(0x4D2C6DFC), Word.FromInt(0x53380D13), Word.FromInt(0x650A7354), Word.FromInt(0x766A0ABB), Word.FromInt(0x81C2C92E), Word.FromInt(0x92722C85),
-//				Word.FromInt(0xA2BFE8A1), Word.FromInt(0xA81A664B), Word.FromInt(0xC24B8B70), Word.FromInt(0xC76C51A3), Word.FromInt(0xD192E819), Word.FromInt(0xD6990624), Word.FromInt(0xF40E3585), Word.FromInt(0x106AA070),
-//				Word.FromInt(0x19A4C116), Word.FromInt(0x1E376C08), Word.FromInt(0x2748774C), Word.FromInt(0x34B0BCB5), Word.FromInt(0x391C0CB3), Word.FromInt(0x4ED8AA4A), Word.FromInt(0x5B9CCA4F), Word.FromInt(0x682E6FF3),
-//				Word.FromInt(0x748F82EE), Word.FromInt(0x78A5636F), Word.FromInt(0x84C87814), Word.FromInt(0x8CC70208), Word.FromInt(0x90BEFFFA), Word.FromInt(0xA4506CEB), Word.FromInt(0xBEF9A3F7), Word.FromInt(0xC67178F2)};
-//
-//			//Debug.Log(s0.bits[0].ToString());
-//
-//			for (int i=0; i<64; i++)
-//			{
-//				Word S1 = Word.RightRotate(e,6) ^ Word.RightRotate(e,11) ^ Word.RightRotate(e,25);
-//				Word ch = (e & f) ^ ((!e) & g);
-//				Word temp1 = h + S1 + ch + k[i] + w[i];
-//				Word S0 = Word.RightRotate(a,2) ^ Word.RightRotate(a,13) ^ Word.RightRotate(a,22);
-//				Word maj = (a & b) ^ (a & c) ^ (b & c);
-//				Word temp2 = S0 + maj;
-//
-//				h = g;
-//				g = f;
-//				f = e;
-//				e = d + temp1;
-//				d = c;
-//				c = b;
-//				b = a;
-//				a = temp1 + temp2;
-//
-//				Debug.Log(Bit.BitCount);
-//				yield return null;
-//				Debug.Log("Max parent : " + Bit.maxParent);
-//				Debug.Log("Max step : " + Bit.maxStep);
-//			}
-//
-//			List<Word> result = new List<Word>(){
-//				h0 + a,
-//				h1 + b,
-//				h2 + c,
-//				h3 + d,
-//				h4 + e,
-//				h5 + f,
-//				h6 + g,
-//				h7 + h,
-//			};
-//
-//			result.InsertRange(0,w);
-			//drawer.ProcessDraw(result);
+			Word h0 = Word.FromInt(0x6a09e667);
+			Word h1 = Word.FromInt(0xbb67ae85);
+			Word h2 = Word.FromInt(0x3c6ef372);
+			Word h3 = Word.FromInt(0xa54ff53a);
+			Word h4 = Word.FromInt(0x510e527f);
+			Word h5 = Word.FromInt(0x9b05688c);
+			Word h6 = Word.FromInt(0x1f83d9ab);
+			Word h7 = Word.FromInt(0x5be0cd19);
+
+			Word a = Word.FromInt(0x6a09e667);
+			Word b = Word.FromInt(0xbb67ae85);
+			Word c = Word.FromInt(0x3c6ef372);
+			Word d = Word.FromInt(0xa54ff53a);
+			Word e = Word.FromInt(0x510e527f);
+			Word f = Word.FromInt(0x9b05688c);
+			Word g = Word.FromInt(0x1f83d9ab);
+			Word h = Word.FromInt(0x5be0cd19);
+
+
+			Word[] k = new Word[64]  {
+				Word.FromInt(0x428A2F98), Word.FromInt(0x71374491), Word.FromInt(0xB5C0FBCF), Word.FromInt(0xE9B5DBA5), Word.FromInt(0x3956C25B), Word.FromInt(0x59F111F1), Word.FromInt(0x923F82A4), Word.FromInt(0xAB1C5ED5),
+				Word.FromInt(0xD807AA98), Word.FromInt(0x12835B01), Word.FromInt(0x243185BE), Word.FromInt(0x550C7DC3), Word.FromInt(0x72BE5D74), Word.FromInt(0x80DEB1FE), Word.FromInt(0x9BDC06A7), Word.FromInt(0xC19BF174),
+				Word.FromInt(0xE49B69C1), Word.FromInt(0xEFBE4786), Word.FromInt(0x0FC19DC6), Word.FromInt(0x240CA1CC), Word.FromInt(0x2DE92C6F), Word.FromInt(0x4A7484AA), Word.FromInt(0x5CB0A9DC), Word.FromInt(0x76F988DA),
+				Word.FromInt(0x983E5152), Word.FromInt(0xA831C66D), Word.FromInt(0xB00327C8), Word.FromInt(0xBF597FC7), Word.FromInt(0xC6E00BF3), Word.FromInt(0xD5A79147), Word.FromInt(0x06CA6351), Word.FromInt(0x14292967),
+				Word.FromInt(0x27B70A85), Word.FromInt(0x2E1B2138), Word.FromInt(0x4D2C6DFC), Word.FromInt(0x53380D13), Word.FromInt(0x650A7354), Word.FromInt(0x766A0ABB), Word.FromInt(0x81C2C92E), Word.FromInt(0x92722C85),
+				Word.FromInt(0xA2BFE8A1), Word.FromInt(0xA81A664B), Word.FromInt(0xC24B8B70), Word.FromInt(0xC76C51A3), Word.FromInt(0xD192E819), Word.FromInt(0xD6990624), Word.FromInt(0xF40E3585), Word.FromInt(0x106AA070),
+				Word.FromInt(0x19A4C116), Word.FromInt(0x1E376C08), Word.FromInt(0x2748774C), Word.FromInt(0x34B0BCB5), Word.FromInt(0x391C0CB3), Word.FromInt(0x4ED8AA4A), Word.FromInt(0x5B9CCA4F), Word.FromInt(0x682E6FF3),
+				Word.FromInt(0x748F82EE), Word.FromInt(0x78A5636F), Word.FromInt(0x84C87814), Word.FromInt(0x8CC70208), Word.FromInt(0x90BEFFFA), Word.FromInt(0xA4506CEB), Word.FromInt(0xBEF9A3F7), Word.FromInt(0xC67178F2)};
+
+			//Debug.Log(s0.bits[0].ToString());
+
+			for (int i=0; i<64; i++)
+			{
+				Word S1 = Word.RightRotate(e,6) ^ Word.RightRotate(e,11) ^ Word.RightRotate(e,25);
+				Word ch = (e & f) ^ ((!e) & g);
+				Word temp1 = h + S1 + ch + k[i] + w[i];
+				Word S0 = Word.RightRotate(a,2) ^ Word.RightRotate(a,13) ^ Word.RightRotate(a,22);
+				Word maj = (a & b) ^ (a & c) ^ (b & c);
+				Word temp2 = S0 + maj;
+
+				h = g;
+				g = f;
+				f = e;
+				e = d + temp1;
+				d = c;
+				c = b;
+				b = a;
+				a = temp1 + temp2;
+
+				Debug.Log(Bit.BitCount);
+				yield return null;
+				Debug.Log("Max parent : " + Bit.maxParent);
+				Debug.Log("Max step : " + Bit.maxStep);
+			}
+
+			List<Word> result = new List<Word>(){
+				h0 + a,
+				h1 + b,
+				h2 + c,
+				h3 + d,
+				h4 + e,
+				h5 + f,
+				h6 + g,
+				h7 + h,
+			};
+
+			result.InsertRange(0,w);
+			drawer.ProcessDraw(result);
 		}
 
 		IEnumerator UnitTestAdd()
