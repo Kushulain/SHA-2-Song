@@ -578,7 +578,7 @@ namespace SHATest
 				yield return null;
 				Debug.Log("Max parent : " + Bit.maxParent);
 				Debug.Log("Max step : " + Bit.maxStep);
-				drawer.ProcessDraw(w);
+				drawer.ProcessDrawStep(w);
 			}
 
 
@@ -649,7 +649,7 @@ namespace SHATest
 			};
 
 			result.InsertRange(0,w);
-			drawer.ProcessDraw(result);
+			drawer.ProcessDrawStep(result);
 		}
 
 		IEnumerator UnitTestAdd()

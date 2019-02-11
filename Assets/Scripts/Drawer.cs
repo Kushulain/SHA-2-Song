@@ -5,6 +5,7 @@ using SHATest;
 using System.IO;
 using System;
 using System.Linq;
+using UnityEngine.Audio;
 
 
 public class Vector2Int
@@ -69,11 +70,15 @@ public class Drawer : MonoBehaviour {
 	List<Vector3> not_Line = new List<Vector3>();
 
 	public List<AudioSource> sounds;
+	public AudioHighPassFilter highPassF;
+	public AudioMixer masterMixer;
 
 	public bool sing = true;
 	public bool drawDebug = true;
 	public bool drawGLLine = true;
 	public Material mat;
+
+	public int drawOneOn = 10;
 
 	public Color noneCol;
 	public Color andCol;
@@ -123,27 +128,84 @@ public class Drawer : MonoBehaviour {
 		yield return new WaitForEndOfFrame();
 
 		var directory = new DirectoryInfo(Application.dataPath);
-		var path = Path.Combine(directory.Parent.FullName, string.Format("Screenshot_{0}.png", DateTime.Now.ToString("yyyyMMdd_Hmmss")));
+		var path = Path.Combine(directory.Parent.FullName + "\\Renders\\", string.Format("Screenshot_{0}.png", DateTime.Now.ToString("yyyyMMdd_Hmmss")));
 		Debug.Log("Taking screenshot to " + path);
 		Application.CaptureScreenshot(path,4);
 		m_screenShotLock = false;
 	}
 
-	void MakeSounds(List<DrawnBit> dBits)
+	void MakeSoundsqsfqsf(List<DrawnBit> dBits)
 	{
 		for (int i=0; i<sounds.Count;i++)
+		{
 			sounds[i].volume = 0f;
+			sounds[i].pitch = 0f;
+		}
 
 		//dBits = dBits.OrderByDescending( val => val.pos.y).ToList();
 		//dBits = dBits.OrderByDescending( val => val.pos.x).ToList();
 
-		for (int i=0; i<Math.Min(dBits.Count,sounds.Count);i++)
+		int ors = 0;
+		int ands = 0;
+		int nots = 0;
+		int xors = 0;
+
+		for (int i=0; i<dBits.Count;i++)
 		{
-			sounds[i].volume = 0.2f;
-			sounds[i].pitch = dBits[i].pos.y *0.3f + 0.3f;
+			switch (dBits[i].bit.operation)
+			{
+			case Bit.BitOperation.AND :
+				ands++;
+				break;
+			case Bit.BitOperation.OR :
+				ors++;
+				break;
+			case Bit.BitOperation.NOT :
+				nots++;
+				break;
+			case Bit.BitOperation.XOR :
+				xors++;
+				break;
+			}
+			//sounds[i].pitch *= 0.1f;
+
 			//sounds[i].volume *= (5f - sounds[i].pitch);
-			//sounds[i].volume /=  Mathf.Max(0.5f,sounds[i].pitch);
+			//sounds[i].volume /=  Mathf.Max(0.8f,sounds[i].pitch);
+			//sounds[i].pitch *=  1f+dBits.Count/80f;
+
 		}
+
+		sounds[0].volume = (ands % 4) == 0 ? 0f : 0.2f;
+		sounds[1].volume = (ors % 4) == 0 ? 0f : 0.2f;
+		sounds[2].volume = (nots % 4) == 0 ? 0f : 0.2f;
+		sounds[3].volume = (xors % 4) == 0 ? 0f : 0.2f;
+
+		sounds[0].volume = 0.2f;
+		sounds[1].volume = 0.2f;
+		sounds[2].volume = 0.2f;
+		sounds[3].volume = 0.2f;
+
+
+//		sounds[0].pitch = 0.1f * (1+ands % 10);
+//		sounds[1].pitch = 0.2f * (1+ors % 10);
+//		sounds[2].pitch = 0.3f * (1+nots % 10);
+//		sounds[3].pitch = 0.4f * (1+xors % 10);
+//
+		sounds[0].pitch = 0.4f + Mathf.Pow(1.5f,ands % 7) % 1f;
+//		sounds[1].pitch = 0.2f * (1+ors % 10);
+//		sounds[2].pitch = 0.3f * (1+nots % 10);
+//		sounds[3].pitch = 0.4f * (1+xors % 10);
+
+
+		float currentHiPassValue = 40f;
+		masterMixer.GetFloat("hiPassFreq",out currentHiPassValue);
+		//highPassF.cutoffFrequency = 40f + dBits.Count * 10f;
+		masterMixer.SetFloat("hiPassFreq", Mathf.Lerp(
+			currentHiPassValue,
+			dBits.Count * 2f,
+			1f * Time.deltaTime));
+
+		Debug.Log(dBits.Count);
 
 
 //		int test = dBits.Count / sounds.Count;
@@ -157,6 +219,71 @@ public class Drawer : MonoBehaviour {
 ////			if (i==0)
 ////				Debug.Log(dBits[test*i].pos.y);
 //		}
+	}
+
+
+	void MakeSounds(List<DrawnBit> dBits)
+	{
+		for (int i=0; i<sounds.Count;i++)
+			sounds[i].volume = 0f;
+
+		//dBits = dBits.OrderByDescending( val => val.pos.y).ToList();
+		//dBits = dBits.OrderByDescending( val => val.pos.x).ToList();
+
+		for (int i=0; i<Math.Min(dBits.Count,sounds.Count);i++)
+		{
+			sounds[i].volume = 0.2f;
+			sounds[i].pitch = dBits[i].pos.y *0.3333f + 0.3f;
+
+			switch (dBits[i].bit.operation)
+			{
+			case Bit.BitOperation.NONE :
+				sounds[i].pitch = 0.0f;
+				break;
+			case Bit.BitOperation.AND :
+				sounds[i].pitch = 0.2f;
+				break;
+			case Bit.BitOperation.OR :
+				sounds[i].pitch = 0.3f;
+				break;
+			case Bit.BitOperation.NOT :
+				sounds[i].pitch = 0.4f;
+				break;
+			case Bit.BitOperation.XOR :
+				sounds[i].pitch = 0.5f;
+				break;
+			}
+			sounds[i].pitch *= 3.0f;
+			if (i%2 == 0)
+				sounds[i].pitch *= 2.0f;
+
+			//sounds[i].volume *= (5f - sounds[i].pitch);
+			sounds[i].volume /=  Mathf.Max(0.8f,sounds[i].pitch);
+			//sounds[i].pitch *=  1f+dBits.Count/80f;
+
+		}
+		float currentHiPassValue = 40f;
+		masterMixer.GetFloat("hiPassFreq",out currentHiPassValue);
+		//highPassF.cutoffFrequency = 40f + dBits.Count * 10f;
+		masterMixer.SetFloat("hiPassFreq", Mathf.Lerp(
+			currentHiPassValue,
+			dBits.Count * 2f,
+			1f * Time.deltaTime));
+
+		Debug.Log(dBits.Count);
+
+
+		//		int test = dBits.Count / sounds.Count;
+		//		test = Mathf.Max(test,1);
+		//
+		//		for (int i=0; i<Math.Min(dBits.Count,sounds.Count); i++)
+		//		{
+		//			sounds[i].volume = 0.3f;
+		//			sounds[i].pitch = dBits[test*i].pos.y *0.1f + 0.3f;
+		//
+		////			if (i==0)
+		////				Debug.Log(dBits[test*i].pos.y);
+		//		}
 	}
 
 	void Draw()
@@ -175,8 +302,11 @@ public class Drawer : MonoBehaviour {
 			foreach (KeyValuePair<Bit,DrawnBit> kvp in lastDrawnBits)
 			{
 				counter++;
-//				if ((counter % 10) != 1)
-//					continue;
+				if ((counter % drawOneOn) != 0)
+					continue;
+
+				if (kvp.Key.stepFromMessage == -1)
+					Debug.LogError("-1");
 
 				Bit bit = kvp.Key;
 				DrawnBit dBit = kvp.Value;
@@ -395,12 +525,17 @@ public class Drawer : MonoBehaviour {
 		int maxX = 0;
 		int maxY = 0;
 
+		int peakPos = 0;
+
 		foreach (KeyValuePair<int,int> kv in depthStack)
 		{
 			maxX = Mathf.Max(maxX,kv.Key);
 			maxY = Mathf.Max(maxY,kv.Value);
+			if (kv.Value == maxY)
+				peakPos = kv.Key;
 		}
 		Debug.Log("size " + maxX + "," + maxY);
+		Debug.Log("peakPos " + peakPos);
 	}
 
 	void DrawBitChild(Bit bit)
